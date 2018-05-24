@@ -29,6 +29,7 @@ type RunningOutput struct {
 
 	MetricsFiltered selfstat.Stat
 	MetricsWritten  selfstat.Stat
+	FieldsWritten   selfstat.Stat
 	BufferSize      selfstat.Stat
 	BufferLimit     selfstat.Stat
 	WriteTime       selfstat.Stat
@@ -65,6 +66,11 @@ func NewRunningOutput(
 			"write",
 			"metrics_written",
 			map[string]string{"output": name},
+		),
+		FieldsWritten: selfstat.Register(
+                        "write",
+                        "fields_written",
+                        map[string]string{"output": name},
 		),
 		MetricsFiltered: selfstat.Register(
 			"write",
@@ -182,6 +188,11 @@ func (ro *RunningOutput) write(metrics []telegraf.Metric) error {
 		log.Printf("D! Output [%s] wrote batch of %d metrics in %s\n",
 			ro.Name, nMetrics, elapsed)
 		ro.MetricsWritten.Incr(int64(nMetrics))
+		count := 0
+		for _, metric := range metrics {
+			count = count + len(metric.Fields())
+		}
+		ro.FieldsWritten.Incr(int64(count))
 		ro.WriteTime.Incr(elapsed.Nanoseconds())
 	}
 	return err
